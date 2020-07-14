@@ -14,19 +14,17 @@ const AddClaimedChannel = 3
 const RemoveClaimedChannel = 4
 const ChannelWorkerSleepSecs = 1
 
-type op uint8
 type ChannelOp struct {
-	op   []op
+	op   []uint8
 	data *Device
 }
-type DeviceId uint16
-type DeviceIdList []DeviceId
+
 type NetworkDevices struct {
-	DeviceTable     map[DeviceId]*Device
+	DeviceTable     map[string]*Device
 	UnClaimed       set
 	Claimed         set
-	ClaimedBuffer   DeviceIdList
-	UnClaimedBuffer DeviceIdList
+	ClaimedBuffer   []string
+	UnClaimedBuffer []string
 	Channel         chan *ChannelOp
 	mClaimed        sync.RWMutex
 	mUnclaimed      sync.RWMutex
@@ -37,8 +35,9 @@ type LatLng struct {
 }
 type Device struct {
 	sync.Mutex
-	IpAddress string   `json:"ipAddress"`
-	Geo       *LatLng  `json:"geoLocation"`
-	SerialId  DeviceId `json:"serial"`
-	reserved  bool
+	IpAddress  string  `json:"ipAddress"`
+	Geo        *LatLng `json:"geoLocation"`
+	SerialId   string  `json:"serial"`
+	customerId string
+	reserved   bool
 }

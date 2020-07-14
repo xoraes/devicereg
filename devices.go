@@ -3,63 +3,61 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 )
 
-func (devices *NetworkDevices) Reserve(id string) *AppError {
-	i, err := strconv.ParseUint(id, 10, 16)
-	if err != nil {
-		return appErr("invalid id", http.StatusBadRequest)
-	}
-	d, ok := devices.DeviceTable[DeviceId(i)]
+func (devices *NetworkDevices) Reserve(devId, cusId string) *AppError {
+	d, ok := devices.DeviceTable[devId]
 	if !ok {
-		return appErr(fmt.Sprintf("device id %v not found", id), http.StatusBadRequest)
+		return appErr(fmt.Sprintf("device id %v not found", devId), http.StatusNotFound)
 	}
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
-	if d.reserved {
+	if d.reserved && d.customerId != cusId {
 		return appErr("device unavailable for reservation", http.StatusConflict)
 	}
 	d.reserved = true
-	devices.Channel <- &ChannelOp{op: []op{AddClaimedChannel, RemoveUnClaimedChannel}, data: d}
+	d.customerId = cusId
+	devices.Channel <- &ChannelOp{op: []uint8{AddClaimedChannel, RemoveUnClaimedChannel}, data: d}
 	return nil
 }
 
-func (devices *NetworkDevices) Release(id string) *AppError {
-	i, err := strconv.ParseUint(id, 10, 16)
-	if err != nil {
-		return appErr("invalid id", http.StatusBadRequest)
-	}
-	d, ok := devices.DeviceTable[DeviceId(i)]
+func (devices *NetworkDevices) Release(devId, cusId string) *AppError {
+	d, ok := devices.DeviceTable[devId]
 	if !ok {
-		return appErr(fmt.Sprintf("device id %v not found", id), http.StatusBadRequest)
+		return appErr(fmt.Sprintf("customer id %v not found", cusId), http.StatusNotFound)
 	}
 	if d.reserved == false {
 		return nil
 	}
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
+	if d.customerId != cusId {
+		return appErr(fmt.Sprintf("unauthorized: customer does not own the device"), http.StatusUnauthorized)
+	}
 	d.reserved = false
-	devices.Channel <- &ChannelOp{op: []op{RemoveClaimedChannel, AddUnClaimedChannel}, data: d}
+	d.customerId = ""
+	devices.Channel <- &ChannelOp{op: []uint8{RemoveClaimedChannel, AddUnClaimedChannel}, data: d}
 	return nil
 }
 
-func (devices *NetworkDevices) GetDevices(claimed bool) DeviceIdList {
+func (devices *NetworkDevices) GetDevices(claimed bool) []string {
 	if !claimed {
 		return devices.UnClaimedBuffer
 	}
 	return devices.ClaimedBuffer
 }
 
-func (devices *NetworkDevices) GetDevice(id string) (*Device, *AppError) {
-	i, err := strconv.ParseUint(id, 10, 16)
-	if err != nil {
-		return nil, appErr("invalid id", http.StatusBadRequest)
-	}
-	deviceId := DeviceId(i)
-	d := devices.DeviceTable[deviceId]
+func (devices *NetworkDevices) GetDevice(devId, cusId string) (*Device, *AppError) {
+	d := devices.DeviceTable[devId]
+
 	if d == nil {
-		return nil, appErr(fmt.Sprintf("device id %v not found", id), http.StatusBadRequest)
+		return nil, appErr(fmt.Sprintf("device id %v not found", devId), http.StatusNotFound)
+	}
+
+	d.Mutex.Lock()
+	defer d.Mutex.Unlock()
+	if d.customerId != "" && d.customerId != cusId {
+		return nil, appErr("customer does not own the device", http.StatusUnauthorized)
 	}
 	return d, nil
 }

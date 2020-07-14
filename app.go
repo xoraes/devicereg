@@ -4,6 +4,7 @@ import (
 	"expvar"
 	_ "expvar"
 	"flag"
+	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sirupsen/logrus"
 	"net/http"
@@ -20,17 +21,17 @@ func main() {
 
 	flag.Parse()
 	devices := NetworkDevices{}
-	devices.DeviceTable = make(map[DeviceId]*Device)
+	devices.DeviceTable = make(map[string]*Device)
 	devices.UnClaimed = make(map[*Device]bool)
 	devices.Claimed = make(map[*Device]bool)
 	devices.Channel = make(chan *ChannelOp, 1000)
 
 	go func() {
 		for i := 0; i < 20; i++ {
-			id := DeviceId(i + 1)
-			d := &Device{SerialId: id, Geo: &LatLng{Lat: 123.00001, Lng: 123.000001}, IpAddress: "10.1.10.1"}
-			devices.DeviceTable[id] = d
-			devices.Channel <- &ChannelOp{data: d, op: []op{AddUnClaimedChannel}}
+			devId := fmt.Sprintf("dev-%v", i+1)
+			d := &Device{SerialId: devId, Geo: &LatLng{Lat: 123.00001, Lng: 123.000001}, IpAddress: "10.1.10.1"}
+			devices.DeviceTable[devId] = d
+			devices.Channel <- &ChannelOp{data: d, op: []uint8{AddUnClaimedChannel}}
 		}
 	}()
 	go devices.channelWorker()
@@ -40,10 +41,10 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 	router := httprouter.New()
-	router.GET("/devices/:name", devices.devicesHandler)
+	router.GET("/devices/:name", devices.DevicesHandler)
 	router.GET("/ping", Ping)
-	router.POST("/devices/:name/release", devices.releaseHandler)
-	router.POST("/devices/:name/reserve", devices.reserveHandler)
+	router.POST("/devices/:name/release", basicAuth(devices.ReleaseHandler))
+	router.POST("/devices/:name/reserve", devices.ReserveHandler)
 	// Define route and call expvar http handler
 	router.GET("/debug/vars", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		expvar.Handler().ServeHTTP(w, r)

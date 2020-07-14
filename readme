@@ -5,9 +5,10 @@ To Execute via Make:
 Running the executable directly:
 ./devicereg [-nossl] [-debug]
 
-NOTE: the program is preloaded with 20 devices with id 1 - 20 (inclusive)
+IMPORTANT NOTE: the program is preloaded with 20 devices with id "dev-1" to "dev-20" (inclusive).
+In lieu for auth service/db, as long as "test" is the password, any username (customer) can be used.
 
-Following rest APIs are supported
+Following rest APIs are supported using BASIC AUTH (see curl examples)
     GET /ping
     - HTTP 200: returns "Pong"
 
@@ -16,7 +17,8 @@ Following rest APIs are supported
 
     GET /devices/:id
     - HTTP 200: Json Object with serial, geo location and ip is returned
-    - HTTP: 400: Device id not found
+    - HTTP: 404: Device not found
+    - HTTP: 403: Device is reserved and not owned by the customer
 
     GET /devices/claimed
     - HTTP 200: returns json array of all claimed devices. Note that only serial/id's are returned
@@ -27,19 +29,24 @@ Following rest APIs are supported
     POST /devices/:id/reserve
     - HTTP 200: successfully reserved the given device
     - HTTP 409: Unable to reserve because the device is already reserved
+    - HTTP 404: Device not found
 
     POST /devices/:id/release
     - HTTP 200: successfully release the given device with given id
+    - HTTP 403: cannot release device not owned by the customer
+    - HTTP 404: Device not found
+
 
 ================
-Sample API Calls:
+Sample Session Calls:
 ================
-    curl -X GET https://localhost:8081/ping
-    curl -X GET https://localhost:8081/devices/1
-    curl -X GET https://localhost:8081/devices/unclaimed
-    curl -X POST https://localhost:8081/devices/1/reserve
-    curl -X POST https://localhost:8081/devices/1/release
-    curl -X GET https://localhost:8081/devices/claimed
+    curl -k -u C1:test -X GET https://localhost:8081/ping
+    curl -k -u C1:test -X GET -u C1:test https://localhost:8081/devices/unclaimed       [200 OK:array of device ids]
+    curl -k -u C1:test -X POST https://0.0.0.0:8081/devices/dev-1/reserve [200 OK:reserve dev-1 for customer C1]
+    curl -k -u C2:test -X POST https://0.0.0.0:8081/devices/dev-1/reserve [409 Conflict]
+    curl -k -u C1:test -X POST https://0.0.0.0:8081/devices/dev-1/release [200 OK]
+    curl -k -u C2:test -X POST https://0.0.0.0:8081/devices/dev-1/release [403 Unauthorized]
+    curl -k -u C1:test -X GET https://localhost:8081/devices/claimed      [200 OK: array of device ids]
 
 
 Internal Structures:
@@ -71,13 +78,12 @@ asynchronous, locking does not affect latency, however, the consistency is somew
 as the API calls for separate process for release/reserve requests in any case.
 
 Tuning and scale:
-Memory required is about 32 bytes per device. At max we can assume store size of about 32*4 = 128 bytes
-(includes map key/pointers/buffer etc). For, 10K devices total memory is only about 1.2MB. Memory needed
-to run this program is mostly constrained by the number of network connections a machine can handle.
+Memory needed to run this program is mostly constrained by the number of network connections a machine can handle
+not the size of data as data requirement per device is insignificant for a modern server.
 
 The channel buffer size is set to 1000 by default. This can be increased to allow for higher concurrency.
 As the number of devices increase we can also tune how often the worker process runs to update the buffer/cache. T
 his allows us to make the tradeoff between cpu usage(latency) and consistency.
 
 Utilizing Multi Cores/Parallelism: It is possible to optimize the program such that we shard the channel. This will
-allow us to make better use of multi-core cpu by adding mutiple worker go-routines. 
+allow us to make better use of multi-core cpu by adding mutiple worker go-routines.

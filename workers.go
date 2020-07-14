@@ -45,8 +45,8 @@ func (devices *NetworkDevices) channelWorker() {
 }
 func (devices *NetworkDevices) stateWorker() {
 	for {
-		var bufferClaimed DeviceIdList
-		var bufferUnClaimed DeviceIdList
+		var bufferClaimed []string
+		var bufferUnClaimed []string
 		devices.mUnclaimed.Lock()
 		for k, _ := range devices.UnClaimed {
 			bufferUnClaimed = append(bufferUnClaimed, k.SerialId)
