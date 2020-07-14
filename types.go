@@ -4,7 +4,7 @@ import "sync"
 
 type set map[*Device]bool
 type AppError struct {
-	Message string `json:"message, omitempty"`
+	Message string `json:"message"`
 	Code    int    `json:"code"`
 }
 
@@ -13,6 +13,7 @@ const RemoveUnClaimedChannel = 2
 const AddClaimedChannel = 3
 const RemoveClaimedChannel = 4
 const ChannelWorkerSleepSecs = 1
+
 type op uint8
 type ChannelOp struct {
 	op   []op
@@ -36,8 +37,8 @@ type LatLng struct {
 }
 type Device struct {
 	sync.Mutex
-	IpAddress string  `json:"ipAddress, omitempty"`
-	Geo       *LatLng `json:"geoLocation, omitempty"`
-	SerialId  DeviceId  `json:"serial"`
+	IpAddress string   `json:"ipAddress"`
+	Geo       *LatLng  `json:"geoLocation"`
+	SerialId  DeviceId `json:"serial"`
 	reserved  bool
 }

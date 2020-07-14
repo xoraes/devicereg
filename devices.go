@@ -13,7 +13,7 @@ func (devices *NetworkDevices) Reserve(id string) *AppError {
 	}
 	d, ok := devices.DeviceTable[DeviceId(i)]
 	if !ok {
-		return appErr(fmt.Sprintf("device id %d not found", id), http.StatusBadRequest)
+		return appErr(fmt.Sprintf("device id %v not found", id), http.StatusBadRequest)
 	}
 	d.Mutex.Lock()
 	defer d.Mutex.Unlock()
@@ -32,7 +32,7 @@ func (devices *NetworkDevices) Release(id string) *AppError {
 	}
 	d, ok := devices.DeviceTable[DeviceId(i)]
 	if !ok {
-		return appErr(fmt.Sprintf("device id %d not found", id), http.StatusBadRequest)
+		return appErr(fmt.Sprintf("device id %v not found", id), http.StatusBadRequest)
 	}
 	if d.reserved == false {
 		return nil
@@ -59,7 +59,7 @@ func (devices *NetworkDevices) GetDevice(id string) (*Device, *AppError) {
 	deviceId := DeviceId(i)
 	d := devices.DeviceTable[deviceId]
 	if d == nil {
-		return nil, appErr(fmt.Sprintf("device id %d not found", id), http.StatusBadRequest)
+		return nil, appErr(fmt.Sprintf("device id %v not found", id), http.StatusBadRequest)
 	}
 	return d, nil
 }

@@ -1,9 +1,10 @@
 package main
 
 import (
-    "github.com/sirupsen/logrus"
-    "time"
+	"github.com/sirupsen/logrus"
+	"time"
 )
+
 func init() {
 
 }
@@ -18,7 +19,7 @@ func (devices *NetworkDevices) channelWorker() {
 						devices.UnClaimed[c.data] = true
 					}
 					devices.mUnclaimed.Unlock()
-                    logrus.Debug("Added to Unclaimed: %s",c.data)
+					logrus.Debugf("Added to Unclaimed: %+v", c.data)
 				} else if v == AddClaimedChannel {
 					devices.mClaimed.Lock()
 					if !devices.Claimed[c.data] {
@@ -26,17 +27,17 @@ func (devices *NetworkDevices) channelWorker() {
 					}
 					devices.Claimed[c.data] = true
 					devices.mClaimed.Unlock()
-					logrus.Debug("Added to claimed: %s",c.data)
+					logrus.Debugf("Added to claimed: %+v", c.data)
 				} else if v == RemoveClaimedChannel {
 					devices.mClaimed.Lock()
 					delete(devices.Claimed, c.data)
 					devices.mClaimed.Unlock()
-					logrus.Debug("Removed from claimed: %s",c.data)
+					logrus.Debugf("Removed from claimed: %v", c.data)
 				} else if v == RemoveUnClaimedChannel {
 					devices.mUnclaimed.Lock()
 					delete(devices.UnClaimed, c.data)
 					devices.mUnclaimed.Unlock()
-					logrus.Debug("Removed from Unclaimed: %s",c.data)
+					logrus.Debugf("Removed from Unclaimed: %+v", c.data)
 				}
 			}
 		}

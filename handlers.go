@@ -40,16 +40,16 @@ func (devices *NetworkDevices) devicesHandler(w http.ResponseWriter, request *ht
 		{
 			d := devices.GetDevices(false)
 			if d == nil {
-			    d = DeviceIdList{}
-            }
+				d = DeviceIdList{}
+			}
 			b, _ = json.Marshal(d)
 		}
 	case "claimed":
 		{
 			d := devices.GetDevices(true)
-            if d == nil {
-                d = DeviceIdList{}
-            }
+			if d == nil {
+				d = DeviceIdList{}
+			}
 			b, _ = json.Marshal(d)
 		}
 	default:
@@ -60,8 +60,8 @@ func (devices *NetworkDevices) devicesHandler(w http.ResponseWriter, request *ht
 		}
 		b, _ = json.Marshal(d)
 	}
-    w.Header().Set("Content-Type", "application/json; charset=utf-8")
-    w.Write(b)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Write(b)
 }
 func Ping(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	fmt.Fprintf(w, "Pong")

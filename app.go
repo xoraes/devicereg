@@ -1,12 +1,12 @@
 package main
 
 import (
-    "expvar"
-    _ "expvar"
-    "flag"
-    "github.com/julienschmidt/httprouter"
-    "github.com/sirupsen/logrus"
-    "net/http"
+	"expvar"
+	_ "expvar"
+	"flag"
+	"github.com/julienschmidt/httprouter"
+	"github.com/sirupsen/logrus"
+	"net/http"
 )
 
 func appErr(message string, code int) *AppError {
@@ -15,10 +15,10 @@ func appErr(message string, code int) *AppError {
 
 func main() {
 
-    nossl := flag.Bool("nossl", false, "run server in nossl mode")
-    debug := flag.Bool("debug", false, "run server in debug mode")
+	nossl := flag.Bool("nossl", false, "run server in nossl mode")
+	debug := flag.Bool("debug", false, "run server in debug mode")
 
-    flag.Parse()
+	flag.Parse()
 	devices := NetworkDevices{}
 	devices.DeviceTable = make(map[DeviceId]*Device)
 	devices.UnClaimed = make(map[*Device]bool)
@@ -27,7 +27,7 @@ func main() {
 
 	go func() {
 		for i := 0; i < 20; i++ {
-			id := DeviceId(i+1)
+			id := DeviceId(i + 1)
 			d := &Device{SerialId: id, Geo: &LatLng{Lat: 123.00001, Lng: 123.000001}, IpAddress: "10.1.10.1"}
 			devices.DeviceTable[id] = d
 			devices.Channel <- &ChannelOp{data: d, op: []op{AddUnClaimedChannel}}
@@ -35,10 +35,10 @@ func main() {
 	}()
 	go devices.channelWorker()
 	go devices.stateWorker()
-    logrus.SetLevel(logrus.InfoLevel)
-	if (*debug) {
-        logrus.SetLevel(logrus.DebugLevel)
-    }
+	logrus.SetLevel(logrus.InfoLevel)
+	if *debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 	router := httprouter.New()
 	router.GET("/devices/:name", devices.devicesHandler)
 	router.GET("/ping", Ping)
@@ -50,10 +50,10 @@ func main() {
 	})
 
 	if *nossl {
-	    logrus.Info("starting http server on port 8080")
-        http.ListenAndServe(":8080", router);
-    } else {
-        logrus.Info("starting http server on port 8081")
-        http.ListenAndServeTLS(":8081", "server.crt", "server.key", router);
-    }
+		logrus.Info("starting http server on port 8080")
+		http.ListenAndServe(":8080", router)
+	} else {
+		logrus.Info("starting http server on port 8081")
+		http.ListenAndServeTLS(":8081", "server.crt", "server.key", router)
+	}
 }
