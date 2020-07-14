@@ -51,9 +51,9 @@ func main() {
 
 	if *nossl {
 		logrus.Info("starting http server on port 8080")
-		http.ListenAndServe(":8080", router)
+		logrus.Fatal(http.ListenAndServe(":8080", nil))
 	} else {
-		logrus.Info("starting http server on port 8081")
-		http.ListenAndServeTLS(":8081", "server.crt", "server.key", router)
+		logrus.Info("starting https server on port 8081")
+		logrus.Fatal(http.ListenAndServeTLS(":8081", "server.crt", "server.key", router))
 	}
 }
