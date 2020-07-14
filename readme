@@ -1,0 +1,79 @@
+To Execute via Make:
+    * make run (starts https server with info logging on port 8081)
+    * make debug (starts http server with debug logging on port 8080)
+
+Running the executable directly:
+./devicereg [-nossl] [-debug]
+
+NOTE: the program is preloaded with 20 devices with id 1 - 20 (inclusive)
+
+Following rest APIs are supported
+    GET /ping
+    - HTTP 200: returns "Pong"
+
+    GET /debug/vars
+    - HTTP 200: returns memstats and gc info
+
+    GET /devices/:id
+    - HTTP 200: Json Object with serial, geo location and ip is returned
+    - HTTP: 400: Device id not found
+
+    GET /devices/claimed
+    - HTTP 200: returns json array of all claimed devices. Note that only serial/id's are returned
+
+    GET /devices/unclaimed
+    - HTTP 200: returns json array of all unclaimed devices. Note that only serial/id's are returned
+
+    POST /devices/:id/reserve
+    - HTTP 200: successfully reserved the given device
+    - HTTP 409: Unable to reserve because the device is already reserved
+
+    POST /devices/:id/release
+    - HTTP 200: successfully release the given device with given id
+
+================
+Sample API Calls:
+================
+    curl -X GET https://localhost:8081/ping
+    curl -X GET https://localhost:8081/devices/1
+    curl -X GET https://localhost:8081/devices/unclaimed
+    curl -X POST https://localhost:8081/devices/1/reserve
+    curl -X POST https://localhost:8081/devices/1/release
+    curl -X GET https://localhost:8081/devices/claimed
+
+
+Internal Structures:
+NetworkDevices: Struct that holds the main device table and all other substructures.
+	* (Un)Claimed Set: A "set" of (Un)claimed devices updated via a single channel consumer.
+	* (Un)ClaimedBuffer Array: Acts as a buffer which serves the (Un)Claimed devices requests.
+	   Updated periodically (1sec) via a worker goroutine.
+	* Channel: A single buffered channel that is consumed by a single worker. The worker adds or removes devices from
+	    Un(Claimed) device set.
+	* DeviceTable: Map of device id => pointer to a device
+	* Device: Struct containing device data, a mutex and a reservation flag.
+	  A Mutex help serialize changes to the reservation flag.
+
+Tradeoffs:
+Release/Reserve are strictly consistent and synchronous requests. When a reserve or release requests is issued,
+we do NOT lock the DeviceTable (see above). We lock the "Device" only long enough to change the reservation flag in it.
+Because the DeviceTable is not locked, concurrent reserve and release are fast and scalable
+
+Requests for Claimed/Unclaimed devices served via a buffer/cache. The buffer is perodically updated via a worker
+goroutine. This makes the response eventually consistent but fast.
+
+How is the (Un)ClaimedBuffer updated ?
+When a reservation/release is made, an async message is fired to a single go channel. The buffer capacity for the
+channel  is set to 1K. A worker goroutine processes the channel messages and serially (using mutex lock) updates
+two sets - for unclaimed/claimed devices. Another goroutine runs periodically (every second) and iterates over the two
+sets (by locking a set level mutex) and updates the (un)claimed buffer. Because the updates completely are
+asynchronous, locking does not affect latency, however, the consistency is somewhat sacrificed. This is generally ok,
+as the API calls for separate process for release/reserve requests in any case.
+
+
+
+
+
+
+
+
+
