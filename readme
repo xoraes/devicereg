@@ -54,11 +54,12 @@ NetworkDevices: Struct that holds the main device table and all other substructu
 	  A Mutex help serialize changes to the reservation flag.
 
 Tradeoffs:
-Release/Reserve are strictly consistent and synchronous requests. When a reserve or release requests is issued,
-we do NOT lock the DeviceTable (see above). We lock the "Device" only long enough to change the reservation flag in it.
-Because the DeviceTable is not locked, concurrent reserve and release are fast and scalable
 
-Requests for Claimed/Unclaimed devices served via a buffer/cache. The buffer is perodically updated via a worker
+Release/Reserve are strictly consistent and synchronous requests. When a reserve or release requests are issued,
+we do NOT lock the DeviceTable (see above). We lock the "Device" long enough to change the reservation flag in it.
+Because the DeviceTable is not locked, concurrent reserve and release are fast and scalable.
+
+Requests for Claimed/Unclaimed devices served via a buffer/cache. The buffer is periodically updated via a worker
 goroutine. This makes the response eventually consistent but fast.
 
 How is the (Un)ClaimedBuffer updated ?
@@ -69,11 +70,14 @@ sets (by locking a set level mutex) and updates the (un)claimed buffer. Because 
 asynchronous, locking does not affect latency, however, the consistency is somewhat sacrificed. This is generally ok,
 as the API calls for separate process for release/reserve requests in any case.
 
+Tuning and scale:
+Memory required is about 32 bytes per device. At max we can assume store size of about 32*4 = 128 bytes
+(includes map key/pointers/buffer etc). For, 10K devices total memory is only about 1.2MB. Memory needed
+to run this program is mostly constrained by the number of network connections a machine can handle.
 
+The channel buffer size is set to 1000 by default. This can be increased to allow for higher concurrency.
+As the number of devices increase we can also tune how often the worker process runs to update the buffer/cache. T
+his allows us to make the tradeoff between cpu usage(latency) and consistency.
 
-
-
-
-
-
-
+Utilizing Multi Cores/Parallelism: It is possible to optimize the program such that we shard the channel. This will
+allow us to make better use of multi-core cpu by adding mutiple worker go-routines. 
