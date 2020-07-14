@@ -6,9 +6,10 @@ Running the executable directly:
 ./devicereg [-nossl] [-debug]
 
 IMPORTANT NOTE: the program is preloaded with 20 devices with id "dev-1" to "dev-20" (inclusive).
-In lieu for auth service/db, as long as "test" is the password, any username (customer) can be used.
+In lieu for auth service/db, as long as "test" is the password, any username (customer) can be used with
+Basic Auth.
 
-Following rest APIs are supported using BASIC AUTH (see curl examples)
+Following rest APIs are supported using BASIC AUTH (see curl examples, please use password: test)
     GET /ping
     - HTTP 200: returns "Pong"
 
