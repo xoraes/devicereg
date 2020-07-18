@@ -1,13 +1,13 @@
 package main
 
 import (
-    "expvar"
-    _ "expvar"
-    "flag"
-    "fmt"
-    "github.com/julienschmidt/httprouter"
-    "github.com/sirupsen/logrus"
-    "net/http"
+	"expvar"
+	_ "expvar"
+	"flag"
+	"fmt"
+	"github.com/julienschmidt/httprouter"
+	"github.com/sirupsen/logrus"
+	"net/http"
 )
 
 func appErr(message string, code int) *AppError {
@@ -41,16 +41,15 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 	router := httprouter.New()
-    // Define route and call expvar http handler
-    router.GET("/debug/vars", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-        expvar.Handler().ServeHTTP(w, r)
-    })
+	// Define route and call expvar http handler
+	router.GET("/debug/vars", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		expvar.Handler().ServeHTTP(w, r)
+	})
 
 	router.GET("/ping", Ping)
-    router.GET("/devices/:name", basicAuth(devices.DevicesHandler))
+	router.GET("/devices/:name", basicAuth(devices.DevicesHandler))
 	router.POST("/devices/:name/release", basicAuth(devices.ReleaseHandler))
 	router.POST("/devices/:name/reserve", basicAuth(devices.ReserveHandler))
-
 
 	if *nossl {
 		logrus.Info("starting http server on port 8080")
