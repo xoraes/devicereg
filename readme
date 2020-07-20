@@ -72,10 +72,12 @@ goroutine. This makes the response eventually consistent but fast.
 How is the (Un)ClaimedBuffer updated ?
 When a reservation/release is made, an async message is fired to a single go channel. The buffer capacity for the
 channel  is set to 1K. A worker goroutine processes the channel messages and serially (using mutex lock) updates
-two sets - for unclaimed/claimed devices. Another goroutine runs periodically (every second) and iterates over the two
+two sets - for unclaimed/claimed devices. NOTE: We are using both a channel and a mutex. The channel provides order
+for operations on the set, while the mutex is used because there are concurrent reads(iteration)
+and writes over Un(Claimed) sets. A goroutine runs periodically (every second) and iterates over the two
 sets (by locking a set level mutex) and updates the (un)claimed buffer. Because the updates completely are
-asynchronous, locking does not affect latency, however, the consistency is somewhat sacrificed. This is generally ok,
-as the API calls for separate process for release/reserve requests in any case.
+asynchronous, locking does not affect latency, however, the consistency is somewhat sacrificed.
+This is generally ok, as the API calls for separate process for release/reserve requests in any case.
 
 Tuning and scale:
 Memory needed to run this program is mostly constrained by the number of network connections a machine can handle
