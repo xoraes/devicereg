@@ -1,3 +1,12 @@
+Go, REST API interface to get the information of devices and reserve/release the device. There will be 1000’s of devices and multiple
+customers (in 100s) who can reserve a device. I utilized golang channels and locks for this implementation. See TradeOffs below. 
+ 
+Each device table will contain
+a) GPS co-ordinate information
+b) Serial number
+c) IP address
+
+
 To Execute via Make:
     * make run (starts https server with info logging on port 8081)
     * make debug (starts http server with debug logging on port 8080)
